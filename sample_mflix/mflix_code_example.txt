@@ -1,0 +1,156 @@
+--- sample_mflix.movies database
+
+--- get average imdb.rating for all movies with a specific set of criteria
+
+[
+  {
+    $match: {
+      languages: "English",
+      type: "movie",
+      genres: "Drama",
+      "awards.wins": {
+        $gte: 1,
+      },
+      year: {
+        $gte: 1980,
+      },
+      countries: "Australia",
+    },
+  },
+  {
+    $group: {
+      _id: 1,
+      average_imdb_rating: {
+        $avg: "$imdb.rating",
+      },
+    },
+  },
+  {
+    $project: {
+      _id: false,
+    },
+  },
+]
+
+
+--- get count of each movie genre for all movies with a specific set of criteria
+
+[
+  {
+    $match: {
+      type: "movie",
+      year: {
+        $gte: 2010,
+      },
+      "imdb.rating": {
+        $gte: 7.5,
+      },
+    },
+  },
+  {
+    $unwind: {
+      path: "$genres",
+    },
+  },
+  {
+    $group: {
+      _id: "$genres",
+      genre_count: {
+        $count: {},
+      },
+    },
+  },
+  {
+    $sort: {
+      genre_count: -1,
+    },
+  },
+]
+
+
+--- Get average rating of polish movies groupped by year and genre
+
+[
+  {
+    $match: {
+      countries: "Poland",
+      type: "movie",
+    },
+  },
+  {
+    $unwind: {
+      path: "$genres",
+    },
+  },
+  {
+    $group: {
+      _id: ["$year", "$genres"],
+      avg_rating: {
+        $avg: "$imdb.rating",
+      },
+    },
+  },
+  {
+    $sort: {
+      "_id.0": 1,
+    },
+  },
+]
+
+
+--- Get sum of won awards by genres
+
+[
+  {
+    $match: {
+      type: "movie",
+    },
+  },
+  {
+    $unwind: {
+      path: "$genres",
+    },
+  },
+  {
+    $group: {
+      _id: "$genres",
+      award_sum: {
+        $sum: "$awards.wins",
+      },
+    },
+  },
+  {
+    $sort: {
+      award_sum: -1,
+    },
+  },
+]
+
+--- Get sum of won awards (polish movies only) by genres
+
+[
+  {
+    $match: {
+      type: "movie",
+      countries: "Poland",
+    },
+  },
+  {
+    $unwind: {
+      path: "$genres",
+    },
+  },
+  {
+    $group: {
+      _id: "$genres",
+      award_sum: {
+        $sum: "$awards.wins",
+      },
+    },
+  },
+  {
+    $sort: {
+      award_sum: -1,
+    },
+  },
+]
