@@ -1,0 +1,92 @@
+--- get count of all cuisine types
+
+[
+  {
+    $group: {
+      _id: "$cuisine",
+      cuisine_count: {
+        $count: {},
+      },
+    },
+  },
+  {
+    $sort: {
+      cuisine_count: -1,
+    },
+  },
+]
+
+
+--- find out in which borough there are a lot of "Hamburgers" cuisines
+
+[
+  {
+    $match: {
+      cuisine: "Hamburgers",
+    },
+  },
+  {
+    $group: {
+      _id: "$borough",
+      hamburgers_cuisine_count: {
+        $count: {},
+      },
+    },
+  },
+  {
+    $sort: {
+      hamburgers_cuisine_count: -1,
+    },
+  },
+]
+
+
+--- get average restaurant score by borough
+
+[
+  {
+    $unwind: {
+      path: "$grades",
+    },
+  },
+  {
+    $group: {
+      _id: "$borough",
+      avg_score: {
+        $avg: "$grades.score",
+      },
+    },
+  },
+  {
+    $sort: {
+      avg_score: -1,
+    },
+  },
+]
+
+
+--- get average restaurant score by borough and cuisine
+
+[
+  {
+    $unwind: {
+      path: "$grades",
+    },
+  },
+  {
+    $group: {
+      _id: {
+        borough_name: "$borough",
+        cuisine_name: "$cuisine",
+      },
+      avg_score: {
+        $avg: "$grades.score",
+      },
+    },
+  },
+  {
+    $sort: {
+      avg_score: -1,
+    },
+  },
+]
