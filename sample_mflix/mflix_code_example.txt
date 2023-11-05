@@ -154,3 +154,100 @@
     },
   },
 ]
+
+--- get average runtime for movies with polish language, rating >= 7.0 and year >=2010 groupped by genre
+
+[
+  {
+    $match: {
+      type: "movie",
+      languages: "Polish",
+      year: {
+        $gte: 2010,
+      },
+      "imdb.rating": {
+        $gte: 7.0,
+      },
+    },
+  },
+  {
+    $unwind: {
+      path: "$genres",
+    },
+  },
+  {
+    $group: {
+      _id: "$genres",
+      avg_runtime_by_genre: {
+        $avg: "$runtime",
+      },
+    },
+  },
+  {
+    $sort: {
+      avg_runtime_by_genre: -1,
+    },
+  },
+]
+
+
+--- get average imdb.rating and runtime for american westerns
+
+[
+  {
+    $match: {
+      genres: "Western",
+      countries: "USA",
+      type: "movie",
+    },
+  },
+  {
+    $unwind: {
+      path: "$countries",
+    },
+  },
+  {
+    $unwind: {
+      path: "$genres",
+    },
+  },
+  {
+    $match: {
+      genres: "Western",
+      countries: "USA",
+    },
+  },
+  {
+    $group: {
+      _id: null,
+      avg_rating: {
+        $avg: "$imdb.rating",
+      },
+      avg_runtime: {
+        $avg: "$runtime",
+      },
+    },
+  },
+]
+
+
+--- join comments based on _id = movie_id
+--- note: joins in NoSQL work similarly to left outer join in SQL
+
+[
+  {
+    $lookup: {
+      from: "comments",
+      localField: "_id",
+      foreignField: "movie_id",
+      as: "comments",
+    },
+  },
+  {
+    $match: {
+      comments: {
+        $ne: [],
+      },
+    },
+  },
+]
