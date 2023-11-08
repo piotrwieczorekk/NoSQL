@@ -251,3 +251,28 @@
     },
   },
 ]
+
+
+--- $or operator: select movies that meet at least 1 criterion
+
+{
+  $or: [
+    { genres: "Drama" },
+    { runtime: { $gte: 150 } },
+    { "imdb.rating": { $gte: 7.0 } },
+  ],
+}
+
+
+--- $and operator: select movies that meet all of the criteria
+
+{
+  $and: [
+    { runtime: { $gte: 120 } },
+    { languages: "Polish" },
+    { year: { $gte: 1950, $lte: 1980 } },
+    { "imdb.rating": { $gte: 7.0 } },
+  ],
+}
+
+
