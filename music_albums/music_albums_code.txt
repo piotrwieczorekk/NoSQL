@@ -1,0 +1,81 @@
+ 1. Find all albums by U2 with total tracks >= 10 and sort by total tracks
+
+db.getCollection('albumy')
+  .find({
+    $and: [
+      { 'artists.0.name': 'U2' },
+      { total_tracks: { $gte: 10 } }
+    ]
+  })
+  .sort({ total_tracks: -1 });
+
+
+2. Find all albums by either U2 or Taylor Swift and sort by total tracks
+
+db.getCollection('albumy')
+  .find({
+    $or: [
+      { 'artists.0.name': 'U2' },
+      { 'artists.0.name': 'Taylor Swift' }
+    ]
+  })
+  .sort({ total_tracks: -1 });
+
+3. Find all albums by either U2 or Taylor Swift with total tracks >= 10 and sort by total tracks
+
+db.getCollection('albumy')
+  .find({
+    $and: [
+      {
+        'artists.0.name': {
+          $in: ['U2', 'Taylor Swift']
+        }
+      },
+      { total_tracks: { $gte: 10 } }
+    ]
+  })
+  .sort({ total_tracks: -1 });
+
+4. Get the average of total tracks for U2 albums
+
+[
+  {
+    $match:
+      {
+        "artists.0.name": "U2",
+      },
+  },
+  {
+    $group: {
+      _id: 1,
+      avg_total_tracks_per_album: {
+        $avg: "$total_tracks",
+      },
+    },
+  },
+]
+
+4. Find the average amount of tracks for all U2 and Taylor Swift albums
+
+[
+  {
+    $unwind: {
+      path: "$artists",
+    },
+  },
+  {
+    $match: {
+      "artists.name": {
+        $in: ["Taylor Swift", "U2"],
+      },
+    },
+  },
+  {
+    $group: {
+      _id: "$artists.name",
+      avg_tracks_per_album: {
+        $avg: "$total_tracks",
+      },
+    },
+  },
+]
