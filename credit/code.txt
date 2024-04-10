@@ -1,0 +1,339 @@
+Zad 2
+Z dokumentów kolekcji application_record wybierz tylko kobiety posiadające 
+samochody, nieruchomość (FLAG_OWN_REALITY) i nie mające dzieci z 
+Name_Family_StatusSingle / not married Znajdź minimalną maksymalną i średnią 
+AMT_INCOME_TOTAL dla każdego typu zatrudnienia, każdego typu wykształcenia i 
+każdej kombinacji typu zatrudnienia i typu wykształcenia (3 polecenia lub $facet)
+
+[
+  {
+    $match: {
+      $and: [
+        {
+          CODE_GENDER: "M",
+        },
+        {
+          FLAG_OWN_CAR: "Y",
+        },
+        {
+          FLAG_OWN_REALTY: "Y",
+        },
+        {
+          NAME_FAMILY_STATUS:
+            "Single / not married",
+        },
+      ],
+    },
+  },
+  {
+    $facet: {
+      income_by_occupation: [
+        {
+          $group: {
+            _id: "$OCCUPATION_TYPE",
+            min_value: {
+              $min: "$AMT_INCOME_TOTAL",
+            },
+            max_value: {
+              $max: "$AMT_INCOME_TOTAL",
+            },
+            avg_value: {
+              $avg: "$AMT_INCOME_TOTAL",
+            },
+          },
+        },
+      ],
+      income_by_education: [
+        {
+          $group: {
+            _id: "$NAME_EDUCATION_TYPE",
+            min_value: {
+              $min: "$AMT_INCOME_TOTAL",
+            },
+            max_value: {
+              $max: "$AMT_INCOME_TOTAL",
+            },
+            avg_value: {
+              $avg: "$AMT_INCOME_TOTAL",
+            },
+          },
+        },
+      ],
+      income_by_occupation_and_education: [
+        {
+          $group: {
+            _id: [
+              {
+                education: "$NAME_EDUCATION_TYPE",
+              },
+              {
+                occupation: "$OCCUPATION_TYPE",
+              },
+            ],
+            min_value: {
+              $min: "$AMT_INCOME_TOTAL",
+            },
+            max_value: {
+              $max: "$AMT_INCOME_TOTAL",
+            },
+            avg_value: {
+              $avg: "$AMT_INCOME_TOTAL",
+            },
+          },
+        },
+      ],
+    },
+  },
+]
+
+Zad 3
+Policz liczbę kobiet, które nie zaległy z kredytem w zeszłym miesiącu (status C lub X 
+w zestawie danych dotyczących historii kredytowej). 
+
+[
+  {
+    $match: {
+      CODE_GENDER: "F",
+    },
+  },
+  {
+    $lookup: {
+      from: "kredyty",
+      localField: "ID",
+      foreignField: "ID",
+      as: "creditHistory",
+    },
+  },
+  {
+    $unwind: {
+      path: "$creditHistory",
+    },
+  },
+  {
+    $match: {
+      "creditHistory.MONTHS_BALANCE": -1,
+    },
+  },
+  {
+    $match: {
+      $or: [
+        {
+          "creditHistory.STATUS": "X",
+        },
+        {
+          "creditHistory.STATUS": "C",
+        },
+      ],
+    },
+  },
+  {
+    $count: "NumberOfWomen",
+  },
+]
+
+
+Zad 4
+Znajdź liczbę osób w rozbiciu na typy dochodów mających w historii kredytów więcej
+niż 2 miesiące z opóźnieniami 30-59 dni
+
+
+
+[
+  {
+    $match: {
+      STATUS: 1,
+    },
+  },
+  {
+    $group: {
+      _id: "$ID",
+      liczba_opoznien: {
+        $sum: 1,
+      },
+    },
+  },
+  {
+    $match: {
+      liczba_opoznien: {
+        $gt: 2,
+      },
+    },
+  },
+  {
+    $lookup: {
+      from: "application_record",
+      localField: "_id",
+      foreignField: "ID",
+      as: "result",
+    },
+  },
+  {
+    $unwind: {
+      path: "$result",
+    },
+  },
+  {
+    $group: {
+      _id: "result.NAME_INCOME_TYPE",
+      liczba_klientow: {
+        $sum: 1,
+      },
+    },
+  },
+]
+
+
+zad 5
+Oblicz średni dochód AMT_INCOME_TOTAL wg lat urodzenia, przyjmując, że rok 
+urodzenia to 2020 +DAYS_BIRTH
+
+
+[
+  {
+    $addFields: {
+      yearBirth: {
+        $floor: {
+          $add: [
+            2020,
+            {
+              $divide: ["$DAYS_BIRTH", 365],
+            },
+          ],
+        },
+      },
+    },
+  },
+  {
+    $group: {
+      _id: "$yearBirth",
+      avg_income: {
+        $avg: "$AMT_INCOME_TOTAL",
+      },
+    },
+  },
+]
+
+zad 6
+Oblicz liczbę osób opóźnionych ze spłatą kredytu w ostatnim 
+miesiącu wg stażu pracy w przedziałach co 5 lat (przyjmujemy, że staż pracy to pole 
+-DAYS_EMPLOYED /365)
+
+
+[
+  {
+    $addFields: {
+      staz_pracy: {
+        $floor: {
+          $divide: ["$DAYS_EMPLOYED", -365],
+        },
+      },
+    },
+  },
+  {
+    $match: {
+      staz_pracy: {
+        $gte: 0,
+      },
+    },
+  },
+  {
+    $addFields: {
+      staz_pracy_grupa: {
+        $switch: {
+          branches: [
+            {
+              case: {
+                $lte: ["$staz_pracy", 5],
+              },
+              then: "0-5",
+            },
+            {
+              case: {
+                $lte: ["$staz_pracy", 11],
+              },
+              then: "6-11",
+            },
+            {
+              case: {
+                $lte: ["$staz_pracy", 17],
+              },
+              then: "12-17",
+            },
+            {
+              case: {
+                $lte: ["$staz_pracy", 23],
+              },
+              then: "18-23",
+            },
+            {
+              case: {
+                $lte: ["$staz_pracy", 29],
+              },
+              then: "24-29",
+            },
+            {
+              case: {
+                $lte: ["$staz_pracy", 35],
+              },
+              then: "30-35",
+            },
+            {
+              case: {
+                $lte: ["$staz_pracy", 41],
+              },
+              then: "36-41",
+            },
+            {
+              case: {
+                $lte: ["$staz_pracy", 47],
+              },
+              then: "42-47",
+            },
+            {
+              case: {
+                $gte: ["$staz_pracy", 48],
+              },
+              then: "48+",
+            },
+          ],
+          default: "Other",
+        },
+      },
+    },
+  },
+  {
+    $lookup: {
+      from: "kredyty",
+      localField: "ID",
+      foreignField: "ID",
+      as: "result",
+    },
+  },
+  {
+    $unwind: {
+      path: "$result",
+    },
+  },
+  {
+    $match: {
+      $and: [
+        {
+          "result.MONTH_BALANCE": -1,
+        },
+        {
+          "result.STATUS": {
+            $ne: ["C", "X"],
+          },
+        },
+      ],
+    },
+  },
+  {
+    $group: {
+      _id: "$staz_pracy_grupa",
+      liczb_osob_w_grupie: {
+        $sum: 1,
+      },
+    },
+  },
+]
